@@ -6,8 +6,9 @@ from pathlib import Path
 import os
 import zipfile
 import aeneas
+from urllib import parse
 
-CATALOGUE_PATH = 'catalog.csv' 
+CATALOGUE_PATH = 'catalog.csv'
 AUDIO_PATH = 'audio'
 ROM_PATH = 'romanised'
 
@@ -53,11 +54,19 @@ def download(sources):
     os.makedirs('tmp', exist_ok=True)
     for _, source in sources.iterrows():
         destination = os.path.join(AUDIO_PATH, Path(source['Filename']).stem + '.mp3')
+        print(f'Downloading {destination} {source["audio"]}')
         if os.path.exists(destination):
             print(destination + ' already downloaded, skipping')
         else:
             if source['audio'][-3:] == 'mp3':
-                filename = wget.download(source['audio'], out='tmp')
+                try:
+                    filename = wget.download(parse.unquote(source['audio']), out='tmp')
+                except Exception as exy:
+                    my_exy = exy
+                    print(my_exy)
+                    print(my_exy.geturl())
+                    print(source['audio'])
+
                 if zipfile.is_zipfile(filename):
                     zf = zipfile.ZipFile(filename)
                     unzipped = zf.extractall()
