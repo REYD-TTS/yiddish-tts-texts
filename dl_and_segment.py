@@ -4,6 +4,7 @@ import argparse
 import shutil
 from pathlib import Path
 import os
+import re
 import zipfile
 import aeneas
 from urllib import parse
@@ -33,21 +34,29 @@ def main():
         segment(sources)
 
 def segment(sources):
+    os.makedirs(ROM_PATH, exist_ok=True)
+    os.makedirs('syncmaps', exist_ok=True)
     for _, source in sources.iterrows():
         audio = os.path.join(AUDIO_PATH, Path(source['Filename']).stem + '.mp3')
-        text =  os.path.join(TEXT_PATH, source['Filename'])
-        romanized = os.path.join(ROM_PATH, text)
-        with open(text) as y_text:
-            rom_text = romanize(y_text)
-        with open(romanized) as r_text:
-            r_text.write(rom_text)
+        if os.path.exists(audio):
+            text =  os.path.join(source['Filepath'])
+            romanized = os.path.join(ROM_PATH, source['Filename'])
+            with open(text) as y_text:
+                rom_text = romanise(y_text.read())
+                print(rom_text)
+            with open(romanized, 'w') as r_text:
+                r_text.write(rom_text)
 
 
-        config_string = u"task_language=eng|is_text_type=plain|os_task_file_format=json"
-        task = Task(config_string=config_string)
-        task.audio_file_path_absolute = audio
-        task.text_file_path_absolute = romanized
-        task.sync_map_file_path_absolute = u"syncmap.json"
+            config_string = u"task_language=deu|is_text_type=plain|os_task_file_format=json"
+            task = Task(config_string=config_string)
+            task.audio_file_path_absolute = audio
+            task.text_file_path_absolute = romanized
+            task.sync_map_file_path_absolute = os.path.join('syncmaps', Path(source['Filename']).stem + '.json')
+            # process Task
+            ExecuteTask(task).execute()
+            # output sync map to file
+            task.output_sync_map_file()
 
 
 def download(sources):
@@ -120,7 +129,7 @@ def romanise(text):
     output = re.sub(r"\bpun\b", r"fun", output)
     output = re.sub(r"eup", r"euf", output)
 
-    return clean_punc(text)
+    return output
 
 if __name__ == '__main__':
     main()
