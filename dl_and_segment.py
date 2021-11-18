@@ -8,10 +8,16 @@ import re
 import zipfile
 import aeneas
 from urllib import parse
+import soundfile as sf
+import librosa
+import pydub
+import math
 
 CATALOGUE_PATH = 'catalog.csv'
 AUDIO_PATH = 'audio'
 ROM_PATH = 'romanised'
+SEGMENTED_PATH = 'segmented_audio'
+SR = 22050
 
 from aeneas.executetask import ExecuteTask
 from aeneas.task import Task
@@ -38,7 +44,19 @@ def segment(sources):
     os.makedirs('syncmaps', exist_ok=True)
     for _, source in sources.iterrows():
         audio = os.path.join(AUDIO_PATH, Path(source['Filename']).stem + '.mp3')
-        if os.path.exists(audio):
+        if os.path.exists(audio) and source['IsCorrected'] == 'y':
+            print(f'loading audio {audio}')
+            waveform = pydub.AudioSegment.from_mp3(audio)
+            print(f'loaded audio {audio}')
+
+            if not math.isnan(source['time_start']) and not math.isnan(source['time_end']):
+                # PyDub uses milliseconds for cropping!
+                start_ms = int(source['time_start'])*1000
+                end_ms = int(source['time_end'])*1000
+                waveform = waveform[start_ms:end_ms]
+            cropped_audio = os.path.join(AUDIO_PATH, 'cropped_' + Path(source['Filename']).stem + '.mp3')
+            waveform.export(cropped_audio)
+
             text =  os.path.join(source['Filepath'])
             romanized = os.path.join(ROM_PATH, source['Filename'])
             with open(text) as y_text:
@@ -50,7 +68,7 @@ def segment(sources):
 
             config_string = u"task_language=deu|is_text_type=plain|os_task_file_format=json"
             task = Task(config_string=config_string)
-            task.audio_file_path_absolute = audio
+            task.audio_file_path_absolute = cropped_audio
             task.text_file_path_absolute = romanized
             task.sync_map_file_path_absolute = os.path.join('syncmaps', Path(source['Filename']).stem + '.json')
             # process Task
@@ -129,7 +147,14 @@ def romanise(text):
     output = re.sub(r"\bpun\b", r"fun", output)
     output = re.sub(r"eup", r"euf", output)
 
-    return output
+    return clean_punc(output)
+
+# fix punctuation spacing
+def clean_punc(text):
+    text = re.sub(r"\s+([,.:;!?])", r"\1 ", text)
+    text = re.sub(r"\s+", r" ", text)
+    text = re.sub(r"([.!?])", r"\1 \n ", text)
+    return text.strip()
 
 if __name__ == '__main__':
     main()
