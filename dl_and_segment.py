@@ -12,11 +12,12 @@ import soundfile as sf
 import librosa
 import pydub
 import math
+import json
 
 CATALOGUE_PATH = 'catalog.csv'
 AUDIO_PATH = 'audio'
 ROM_PATH = 'romanised'
-SEGMENTED_PATH = 'segmented_audio'
+SEGMENTED_PATH = 'segmented'
 SR = 22050
 
 from aeneas.executetask import ExecuteTask
@@ -45,23 +46,28 @@ def segment(sources):
     for _, source in sources.iterrows():
         audio = os.path.join(AUDIO_PATH, Path(source['Filename']).stem + '.mp3')
         if os.path.exists(audio) and source['IsCorrected'] == 'y':
-            print(f'loading audio {audio}')
-            waveform = pydub.AudioSegment.from_mp3(audio)
-            print(f'loaded audio {audio}')
-
-            if not math.isnan(source['time_start']) and not math.isnan(source['time_end']):
-                # PyDub uses milliseconds for cropping!
-                start_ms = int(source['time_start'])*1000
-                end_ms = int(source['time_end'])*1000
-                waveform = waveform[start_ms:end_ms]
             cropped_audio = os.path.join(AUDIO_PATH, 'cropped_' + Path(source['Filename']).stem + '.mp3')
-            waveform.export(cropped_audio)
+            if not os.path.exists(cropped_audio):
+                print(f'loading audio {audio}')
+                waveform = pydub.AudioSegment.from_mp3(audio)
+                print(f'loaded audio {audio}')
+
+                if not math.isnan(source['time_start']) and not math.isnan(source['time_end']):
+                    # PyDub uses milliseconds for cropping!
+                    start_ms = int(source['time_start'])*1000
+                    end_ms = int(source['time_end'])*1000
+                    waveform = waveform[start_ms:end_ms]
+                cropped_audio = os.path.join(AUDIO_PATH, 'cropped_' + Path(source['Filename']).stem + '.mp3')
+                print(f'saving cropped audio to {cropped_audio}')
+                waveform.export(cropped_audio)
+            else:
+                waveform = pydub.AudioSegment.from_mp3(cropped_audio)
 
             text =  os.path.join(source['Filepath'])
             romanized = os.path.join(ROM_PATH, source['Filename'])
             with open(text) as y_text:
-                rom_text = romanise(y_text.read())
-                print(rom_text)
+                y_text = y_text.read()
+                rom_text = romanise(y_text)
             with open(romanized, 'w') as r_text:
                 r_text.write(rom_text)
 
@@ -72,9 +78,28 @@ def segment(sources):
             task.text_file_path_absolute = romanized
             task.sync_map_file_path_absolute = os.path.join('syncmaps', Path(source['Filename']).stem + '.json')
             # process Task
-            ExecuteTask(task).execute()
-            # output sync map to file
-            task.output_sync_map_file()
+            if not os.path.exists(task.sync_map_file_path_absolute):
+                ExecuteTask(task).execute()
+                # output sync map to file
+                task.output_sync_map_file()
+            done_dir = os.path.join(SEGMENTED_PATH, Path(source['Filename']).stem)
+            os.makedirs(done_dir, exist_ok=True)
+            divide_mp3(waveform, task.sync_map_file_path_absolute, done_dir, y_text)
+
+def divide_mp3(mp3_input, json_path, output_dir, y_text):
+    with open(json_path) as js_f:
+        aeneas_segment = json.load(js_f)
+        for i, (line, y_line) in enumerate(zip(aeneas_segment["fragments"], y_text.splitlines())):
+            ms = lambda x: int(1000*float(x))
+            start = ms(line['begin'])
+            end = ms(line['end'])
+            text = line['lines']
+            segment = mp3_input[start:end]
+            basename = os.path.join(output_dir, f'vz{i:04d}')
+            segment.export(basename + '.mp3')
+            with open(basename + '.txt', "w") as text_file:
+                print(y_line, text[0])
+                text_file.write(y_line)
 
 
 def download(sources):
