@@ -67,9 +67,16 @@ def segment(sources):
             romanized = os.path.join(ROM_PATH, source['Filename'])
             with open(text) as y_text:
                 y_text = y_text.read()
+                y_text = clean_punc(y_text)
                 rom_text = romanise(y_text)
             with open(romanized, 'w') as r_text:
                 r_text.write(rom_text)
+
+            '''
+            for i, (y, r) in enumerate(zip(y_text.splitlines(), rom_text.splitlines())):
+                print(y, r, '\n\n\n')
+            exit()
+            '''
 
 
             config_string = u"task_language=deu|is_text_type=plain|os_task_file_format=json"
@@ -98,7 +105,7 @@ def divide_mp3(mp3_input, json_path, output_dir, y_text):
             basename = os.path.join(output_dir, f'vz{i:04d}')
             segment.export(basename + '.mp3')
             with open(basename + '.txt', "w") as text_file:
-                print(y_line, text[0])
+                print(y_line, text[0], '\n\n\n\n\n')
                 text_file.write(y_line)
 
 
@@ -172,13 +179,13 @@ def romanise(text):
     output = re.sub(r"\bpun\b", r"fun", output)
     output = re.sub(r"eup", r"euf", output)
 
-    return clean_punc(output)
+    return output
 
 # fix punctuation spacing
 def clean_punc(text):
     text = re.sub(r"\s+([,.:;!?])", r"\1 ", text)
     text = re.sub(r"\s+", r" ", text)
-    text = re.sub(r"([.!?])", r"\1 \n ", text)
+    text = re.sub(r"([.!?]+)", r"\1 \n ", text)
     return text.strip()
 
 if __name__ == '__main__':
