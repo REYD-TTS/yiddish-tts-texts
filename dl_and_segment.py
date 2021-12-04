@@ -54,8 +54,8 @@ def segment(sources):
 
                 if not math.isnan(source['time_start']) and not math.isnan(source['time_end']):
                     # PyDub uses milliseconds for cropping!
-                    start_ms = int(source['time_start'])*1000
-                    end_ms = int(source['time_end'])*1000
+                    start_ms = int(float(source['time_start']) * 1000)
+                    end_ms = int(float(source['time_end']) * 1000)
                     waveform = waveform[start_ms:end_ms]
                 cropped_audio = os.path.join(AUDIO_PATH, 'cropped_' + Path(source['Filename']).stem + '.mp3')
                 print(f'saving cropped audio to {cropped_audio}')
@@ -178,6 +178,8 @@ def romanise(text):
     output = re.sub(r"scht([aeiour])", r"st\1", output)
     output = re.sub(r"\bpun\b", r"fun", output)
     output = re.sub(r"eup", r"euf", output)
+    output = re.sub(r"\bi([aeiou])", r"j\1", output)
+    output = re.sub(r"([^aeiou])([nl])\b", r"\1e\2", output)
 
     return output
 
