@@ -12,6 +12,7 @@ baym.txt,txt/baym.txt,n,Baym dokter,Sholem-Aleykhem,http://yiddish.haifa.ac.il/S
 baym_normalised_respelled.txt,txt/for_training/baym_normalised_respelled.txt,y,Baym dokter,Sholem-Aleykhem,http://yiddish.haifa.ac.il/Stories.html,y,Sara Blacher-Retter,http://yiddish.haifa.ac.il/audio/audioStories/Baym_docter.mp3,,
 baynakht.txt,txt/baynakht.txt,n,Bay nakht,Dovid Bergelson,http://yiddish.haifa.ac.il/Stories.html,y,Sara Blacher-Retter,http://yiddish.haifa.ac.il/audio/audioStories/BayNakht.mp3,,
 bontshe.txt,txt/bontshe.txt,n,Bontshe Shvayg,Yitskhok-Leybush Perets,http://yiddish.haifa.ac.il/Stories.html,y,Sara Blacher-Retter,http://yiddish.haifa.ac.il/audio/audioStories/Bontshes.mp3,,
+bontshe_normalised_respelled.txt,txt/for_training/bontshe_normalised_respelled.txt,y,Bontshe Shvayg,Yitskhok-Leybush Perets,http://yiddish.haifa.ac.il/Stories.html,y,Sara Blacher-Retter,http://yiddish.haifa.ac.il/audio/audioStories/Bontshes.mp3,,
 derkhilef.txt,txt/derkhilef.txt,n,Der khilef,Mendele Moykher-Sforim,http://yiddish.haifa.ac.il/Stories.html,y,Sara Blacher-Retter,http://yiddish.haifa.ac.il/audio/audioStories/Derkhile.mp3,,
 deryid.txt,txt/deryid.txt,n,Der yid vos hot khorev gemakht dem templ,Avrom Reyzen,http://yiddish.haifa.ac.il/Stories.html,y,Sara Blacher-Retter,http://yiddish.haifa.ac.il/audio/audioStories/deryidwa.mp3,,
 deryoyred.txt,txt/deryoyred.txt,n,Der yoyred,Ayzik-Meyer Dik,http://yiddish.haifa.ac.il/Stories.html,y,Sara Blacher-Retter,http://yiddish.haifa.ac.il/audio/audioStories/DerYoyred.mp3,,
