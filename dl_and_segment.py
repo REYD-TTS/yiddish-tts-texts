@@ -13,10 +13,13 @@ import librosa
 import pydub
 import math
 import json
+import yiddish_text_tools
 
 CATALOGUE_PATH = 'catalog.csv'
 AUDIO_PATH = 'audio'
 ROM_PATH = 'romanised'
+RESPELL_PATH = 'respelled'
+HASID_PATH = 'hasidified'
 SEGMENTED_PATH = 'segmented'
 SR = 22050
 
@@ -42,6 +45,8 @@ def main():
 
 def segment(sources):
     os.makedirs(ROM_PATH, exist_ok=True)
+    os.makedirs(RESPELL_PATH, exist_ok=True)
+    os.makedirs(HASID_PATH, exist_ok=True)
     os.makedirs('syncmaps', exist_ok=True)
     for _, source in sources.iterrows():
         audio = os.path.join(AUDIO_PATH, Path(source['Filename']).stem + '.mp3')
@@ -63,14 +68,23 @@ def segment(sources):
             else:
                 waveform = pydub.AudioSegment.from_mp3(cropped_audio)
 
-            text =  os.path.join(source['Filepath'])
+            orig_text = os.path.join(source['Filepath'])
+            respelled = os.path.join(RESPELL_PATH, source['Filename'])
+            hasidified = os.path.join(HASID_PATH, source['Filename'])
             romanized = os.path.join(ROM_PATH, source['Filename'])
-            with open(text) as y_text:
+            with open(orig_text) as y_text:
                 y_text = y_text.read()
                 y_text = clean_punc(y_text)
-                rom_text = romanise(y_text)
-            with open(romanized, 'w') as r_text:
-                r_text.write(rom_text)
+                respelled_text = yiddish_text_tools.respell_loshn_koydesh(y_text)
+                hasidified_text = yiddish_text_tools.hasidify(y_text)
+                rom_text = yiddish_text_tools.romanise_german(respelled_text)
+            
+            with open(respelled, 'w') as text:
+                text.write(respelled_text)
+            with open(hasidified, 'w') as text:
+                text.write(hasidified_text)
+            with open(romanized, 'w') as text:
+                text.write(rom_text)
 
             '''
             for i, (y, r) in enumerate(zip(y_text.splitlines(), rom_text.splitlines())):
@@ -90,13 +104,17 @@ def segment(sources):
                 # output sync map to file
                 task.output_sync_map_file()
             done_dir = os.path.join(SEGMENTED_PATH, Path(source['Filename']).stem)
+            orig_subdir = os.path.join(SEGMENTED_PATH, Path(source['Filename']).stem, 'original') # non-respelled version
+            hasidified_subdir = os.path.join(SEGMENTED_PATH, Path(source['Filename']).stem, 'hasidified') # hasidified version
             os.makedirs(done_dir, exist_ok=True)
-            divide_mp3(waveform, task.sync_map_file_path_absolute, done_dir, y_text)
+            os.makedirs(orig_subdir, exist_ok=True)
+            os.makedirs(hasidified_subdir, exist_ok=True)
+            divide_mp3(waveform, task.sync_map_file_path_absolute, done_dir, respelled_text, orig_subdir, y_text, hasidified_subdir, hasidified_text)
 
-def divide_mp3(mp3_input, json_path, output_dir, y_text):
+def divide_mp3(mp3_input, json_path, output_dir, respelled_text, orig_subdir, orig_text, hasidified_subdir, hasidified_text):
     with open(json_path) as js_f:
         aeneas_segment = json.load(js_f)
-        for i, (line, y_line) in enumerate(zip(aeneas_segment["fragments"], y_text.splitlines())):
+        for i, (line, respelled_line, orig_line, hasidified_line) in enumerate(zip(aeneas_segment["fragments"], respelled_text.splitlines(), orig_text.splitlines(), hasidified_text.splitlines())):
             ms = lambda x: int(1000*float(x))
             start = ms(line['begin'])
             end = ms(line['end'])
@@ -105,9 +123,15 @@ def divide_mp3(mp3_input, json_path, output_dir, y_text):
             basename = os.path.join(output_dir, f'vz{i:04d}')
             segment.export(basename + '.mp3')
             with open(basename + '.txt', "w") as text_file:
-                print(y_line, text[0], '\n\n\n\n\n')
-                text_file.write(y_line)
-
+                print(respelled_line, text[0], '\n\n\n\n\n')
+                text_file.write(respelled_line)
+            
+            orig_basename = os.path.join(orig_subdir, f'vz{i:04d}')
+            with open(orig_basename + '.txt', "w") as text_file:
+                text_file.write(orig_line)
+            hasidified_basename = os.path.join(hasidified_subdir, f'vz{i:04d}')
+            with open(hasidified_basename + '.txt', "w") as text_file:
+                text_file.write(hasidified_line)
 
 def download(sources):
     os.makedirs('tmp', exist_ok=True)
@@ -135,53 +159,6 @@ def download(sources):
                 shutil.move(filename, destination)
             else:
                 pass # TODO pass big zips for now
-
-# TODO this is stolen from /yiddis-tools and must be moved to yiddish text
-# tools. Important to get all text tools in the same place
-def romanise(text):
-    rom = {"א": "",    "אַ": "a", "אָ": "o",
-           "ב": "b",   "בּ": "b", "בֿ": "w",
-           "ג": "g",
-           "ד": "d",
-           "ה": "h",
-           "ו": "u",   "וּ": "u",
-           "װ": "w",
-           "ױ": "eu",
-           "ז": "s",
-           "ח": "ch",
-           "ט": "t",
-           "י": "i",   "יִ": "i",
-           "ײ": "ei",  "ײַ": "ei",
-           "כּ": "k",   "כ": "ch", "ך": "ch",
-           "ל": "l",
-           "מ": "m",   "ם": "m",
-           "נ": "n",   "ן": "n",
-           "ס": "ss",
-           "ע": "e",
-           "פּ": "p",   "פֿ": "f",  "פ": "f", "ף": "f",
-           "צ": "z",   "ץ": "z",
-           "ק": "k",
-           "ר": "r",
-           "ש": "sch", "שׂ": "ss",
-           "תּ": "t",   "ת": "ss"
-        }
-
-    output = ""
-    for c in text:
-        if c in rom.keys():
-            output += rom[c]
-        else:
-            output += c
-
-    output = re.sub(r"־", r"-", output)
-    output = re.sub(r"schp", r"sp", output)
-    output = re.sub(r"scht([aeiour])", r"st\1", output)
-    output = re.sub(r"\bpun\b", r"fun", output)
-    output = re.sub(r"eup", r"euf", output)
-    output = re.sub(r"\bi([aeiou])", r"j\1", output)
-    output = re.sub(r"([^aeiou])([nl])\b", r"\1e\2", output)
-
-    return output
 
 # fix punctuation spacing
 def clean_punc(text):
