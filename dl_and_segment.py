@@ -21,6 +21,7 @@ PREFIX = 'generated'
 pref = lambda path: os.path.join(PREFIX, path) # Put all generated files in a subdir for neatness
 os.makedirs(PREFIX, exist_ok=True)
 AUDIO_PATH = pref('audio')
+SYNCMAPS_DIR = pref('syncmaps')
 ROM_PATH = pref('romanised')
 RESPELL_PATH = pref('respelled')
 HASID_PATH = pref('hasidified')
@@ -59,7 +60,7 @@ def segment(sources):
     os.makedirs(ROM_PATH, exist_ok=True)
     os.makedirs(RESPELL_PATH, exist_ok=True)
     os.makedirs(HASID_PATH, exist_ok=True)
-    os.makedirs('syncmaps', exist_ok=True)
+    os.makedirs(SYNCMAPS_DIR, exist_ok=True)
     for _, source in sources.iterrows():
         audio = os.path.join(AUDIO_PATH, Path(source['Filename']).stem + '.mp3')
         if os.path.exists(audio) and source['IsCorrected'] == 'y':
@@ -103,7 +104,7 @@ def segment(sources):
             task = Task(config_string=config_string)
             task.audio_file_path_absolute = cropped_audio
             task.text_file_path_absolute = romanized
-            task.sync_map_file_path_absolute = os.path.join('syncmaps', Path(source['Filename']).stem + '.json')
+            task.sync_map_file_path_absolute = os.path.join(SYNCMAPS_DIR, Path(source['Filename']).stem + '.json')
             # process Task
             if not os.path.exists(task.sync_map_file_path_absolute):
                 ExecuteTask(task).execute()
