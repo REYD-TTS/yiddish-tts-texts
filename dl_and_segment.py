@@ -15,16 +15,28 @@ import math
 import json
 import yiddish_text_tools
 
+
 CATALOGUE_PATH = 'catalog.csv'
-AUDIO_PATH = 'audio'
-ROM_PATH = 'romanised'
-RESPELL_PATH = 'respelled'
-HASID_PATH = 'hasidified'
-SEGMENTED_PATH = 'segmented'
+PREFIX = 'generated'
+pref = lambda path: os.path.join(PREFIX, path) # Put all generated files in a subdir for neatness
+os.makedirs(PREFIX, exist_ok=True)
+AUDIO_PATH = pref('audio')
+ROM_PATH = pref('romanised')
+RESPELL_PATH = pref('respelled')
+HASID_PATH = pref('hasidified')
+SEGMENTED_PATH = pref('segmented')
 SR = 22050
+
+speaker_codes = {
+    'Sara Blacher-Retter' : 'lit1',
+    'Leib Rubinov' : 'lit2',
+    'Perec Zylberberg' : 'pol1',
+}
 
 from aeneas.executetask import ExecuteTask
 from aeneas.task import Task
+
+utterance_id = 1
 
 def main():
     ap = argparse.ArgumentParser()
@@ -86,12 +98,6 @@ def segment(sources):
             with open(romanized, 'w') as text:
                 text.write(rom_text)
 
-            '''
-            for i, (y, r) in enumerate(zip(y_text.splitlines(), rom_text.splitlines())):
-                print(y, r, '\n\n\n')
-            exit()
-            '''
-
 
             config_string = u"task_language=deu|is_text_type=plain|os_task_file_format=json"
             task = Task(config_string=config_string)
@@ -103,38 +109,50 @@ def segment(sources):
                 ExecuteTask(task).execute()
                 # output sync map to file
                 task.output_sync_map_file()
-            done_dir = os.path.join(SEGMENTED_PATH, Path(source['Filename']).stem)
-            orig_subdir = os.path.join(SEGMENTED_PATH, Path(source['Filename']).stem, 'original') # non-respelled version
-            hasidified_subdir = os.path.join(SEGMENTED_PATH, Path(source['Filename']).stem, 'hasidified') # hasidified version
+            speaker_code = speaker_codes[source['Narrator']]
+            done_dir = os.path.join(SEGMENTED_PATH, speaker_code)
+            orig_subdir = os.path.join(SEGMENTED_PATH, speaker_code, 'original') # non-respelled version
+            hasidified_subdir = os.path.join(SEGMENTED_PATH, speaker_code, 'hasidified') # hasidified version
             os.makedirs(done_dir, exist_ok=True)
             os.makedirs(orig_subdir, exist_ok=True)
             os.makedirs(hasidified_subdir, exist_ok=True)
             divide_mp3(waveform, task.sync_map_file_path_absolute, done_dir, respelled_text, orig_subdir, y_text, hasidified_subdir, hasidified_text)
 
+
 def divide_mp3(mp3_input, json_path, output_dir, respelled_text, orig_subdir, orig_text, hasidified_subdir, hasidified_text):
+    # Utterance id keeps increasing throughout all the calls to this function
+    global utterance_id
     with open(json_path) as js_f:
         aeneas_segment = json.load(js_f)
-        for i, (line, respelled_line, orig_line, hasidified_line) in enumerate(zip(aeneas_segment["fragments"], respelled_text.splitlines(), orig_text.splitlines(), hasidified_text.splitlines())):
+        texts = zip(
+                aeneas_segment["fragments"], 
+                respelled_text.splitlines(), 
+                orig_text.splitlines(), 
+                hasidified_text.splitlines())
+
+        for (line, respelled_line, orig_line, hasidified_line) in texts:
             ms = lambda x: int(1000*float(x))
             start = ms(line['begin'])
             end = ms(line['end'])
             text = line['lines']
             segment = mp3_input[start:end]
-            basename = os.path.join(output_dir, f'vz{i:04d}')
+            basename = os.path.join(output_dir, f'vz{utterance_id:04d}')
             segment.export(basename + '.mp3')
             with open(basename + '.txt', "w") as text_file:
                 print(respelled_line, text[0], '\n\n\n\n\n')
                 text_file.write(respelled_line)
             
-            orig_basename = os.path.join(orig_subdir, f'vz{i:04d}')
+            orig_basename = os.path.join(orig_subdir, f'vz{utterance_id:04d}')
             with open(orig_basename + '.txt', "w") as text_file:
                 text_file.write(orig_line)
-            hasidified_basename = os.path.join(hasidified_subdir, f'vz{i:04d}')
+            hasidified_basename = os.path.join(hasidified_subdir, f'vz{utterance_id:04d}')
             with open(hasidified_basename + '.txt', "w") as text_file:
                 text_file.write(hasidified_line)
+            utterance_id += 1
 
 def download(sources):
     os.makedirs('tmp', exist_ok=True)
+    os.makedirs(AUDIO_PATH, exist_ok=True)
     for _, source in sources.iterrows():
         destination = os.path.join(AUDIO_PATH, Path(source['Filename']).stem + '.mp3')
         print(f'Downloading {destination} {source["audio"]}')
@@ -146,16 +164,9 @@ def download(sources):
                     filename = wget.download(parse.unquote(source['audio']), out='tmp')
                 except Exception as exy:
                     my_exy = exy
-                    print(my_exy)
-                    print(my_exy.geturl())
-                    print(source['audio'])
+                    print('Error downloading ' + my_exy.geturl())
+                    print('Skipping...')
 
-                if zipfile.is_zipfile(filename):
-                    zf = zipfile.ZipFile(filename)
-                    unzipped = zf.extractall()
-                    print(unzipped)
-                    exit()
-                print(filename)
                 shutil.move(filename, destination)
             else:
                 pass # TODO pass big zips for now
