@@ -1,0 +1,3 @@
+[submodule "yiddish_text_tools"]
+	path = yiddish_text_tools
+	url = https://github.com/ibleaman/yiddish-text-tools.git
