@@ -1,0 +1,9 @@
+__pycache__/*
+audio/*
+generated/*
+romanised/*
+respelled/*
+hasidified/*
+segmented/*
+syncmaps/*
+tmp/*
