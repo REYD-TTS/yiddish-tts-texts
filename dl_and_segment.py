@@ -13,7 +13,7 @@ import librosa
 import pydub
 import math
 import json
-import yiddish_text_tools
+from yiddish_text_tools import yiddish_text_tools
 
 
 CATALOGUE_PATH = 'catalog.csv'
