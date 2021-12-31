@@ -13,6 +13,9 @@ import librosa
 import pydub
 import math
 import json
+import glob
+import subprocess
+
 from yiddish_text_tools import yiddish_text_tools
 
 
@@ -43,6 +46,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--download', action='store_true')
     ap.add_argument('--segment', action='store_true')
+    ap.add_argument('--gen_lexicon', action='store_true')
+    ap.add_argument('--purge', action='store_true')
     args = ap.parse_args()
     sources = pd.read_csv(CATALOGUE_PATH)
 
@@ -55,6 +60,32 @@ def main():
 
     if args.segment:
         segment(sources)
+
+    if args.gen_lexicon:
+        gen_lexicon()
+
+    if args.purge:
+        purge_dataset()
+
+
+
+def gen_lexicon():
+    ''' Stolen from Sam Lo's codebase, generates a lexicon for MFA'''
+    unique_words = set()
+    utterances = glob.glob(SEGMENTED_PATH + '/*/*.txt')
+    for utterance in utterances:
+        with open(utterance) as f:
+            text = f.read()
+            text = re.sub(r"[^ ־׳״אאַאָבבּבֿגדהווּײװױזחטייִײַכּכךלמםנןסעפּפֿפףצץקרששׂתּת]", r"", text)
+            for word in text.split():
+                unique_words.add(word)
+
+    with open(f"lexicon.txt", "w") as f:
+        for i, word in enumerate(sorted(unique_words)):
+            if i != 0:
+                f.write("\n")
+            f.write(f"{word}\t{' '.join(word)}")
+
 
 def segment(sources):
     os.makedirs(ROM_PATH, exist_ok=True)
@@ -91,7 +122,7 @@ def segment(sources):
                 respelled_text = yiddish_text_tools.respell_loshn_koydesh(y_text)
                 hasidified_text = yiddish_text_tools.hasidify(y_text)
                 rom_text = yiddish_text_tools.romanise_german(respelled_text)
-            
+
             with open(respelled, 'w') as text:
                 text.write(respelled_text)
             with open(hasidified, 'w') as text:
@@ -126,9 +157,9 @@ def divide_mp3(mp3_input, json_path, output_dir, respelled_text, orig_subdir, or
     with open(json_path) as js_f:
         aeneas_segment = json.load(js_f)
         texts = zip(
-                aeneas_segment["fragments"], 
-                respelled_text.splitlines(), 
-                orig_text.splitlines(), 
+                aeneas_segment["fragments"],
+                respelled_text.splitlines(),
+                orig_text.splitlines(),
                 hasidified_text.splitlines())
 
         for (line, respelled_line, orig_line, hasidified_line) in texts:
@@ -142,7 +173,7 @@ def divide_mp3(mp3_input, json_path, output_dir, respelled_text, orig_subdir, or
             with open(basename + '.txt', "w") as text_file:
                 print(respelled_line, text[0], '\n\n\n\n\n')
                 text_file.write(respelled_line)
-            
+
             orig_basename = os.path.join(orig_subdir, f'vz{utterance_id:04d}')
             with open(orig_basename + '.txt', "w") as text_file:
                 text_file.write(orig_line)
@@ -171,6 +202,30 @@ def download(sources):
                 shutil.move(filename, destination)
             else:
                 pass # TODO pass big zips for now
+
+
+def purge_dataset():
+    mp3s = glob.glob(SEGMENTED_PATH + '/*/*.mp3')
+    count = 0
+    for mp3 in mp3s:
+        sox_proc = subprocess.Popen(
+                ["soxi", "-D", mp3], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True
+        )
+        stdout, stderr = sox_proc.communicate()
+        if stderr.startswith("soxi FAIL formats"):
+            length = 0.
+        else:
+            length = float(stdout.strip())
+
+        if length < 0.5:
+            os.remove(mp3)
+            os.remove(mp3[:-3] + 'txt')
+            count += 1
+            print('removed ', mp3)
+    print(f'purged {count} utterances out of {len(mp3s)} :)')
+    print('You can now run')
+    print('mfa validate generated/segmented lexicon.txt')
+    print('mfa train generated/segmented lexicon.txt generated/textgrids')
 
 # fix punctuation spacing
 def clean_punc(text):
