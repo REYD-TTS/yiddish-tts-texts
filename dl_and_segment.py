@@ -70,21 +70,65 @@ def main():
 
 
 def gen_lexicon():
-    ''' Stolen from Sam Lo's codebase, generates a lexicon for MFA'''
-    unique_words = set()
-    utterances = glob.glob(SEGMENTED_PATH + '/*/*.txt')
-    for utterance in utterances:
-        with open(utterance) as f:
-            text = f.read()
-            text = re.sub(r"[^ ־׳״אאַאָבבּבֿגדהווּײװױזחטייִײַכּכךלמםנןסעפּפֿפףצץקרששׂתּת]", r"", text)
-            for word in text.split():
-                unique_words.add(word)
+    '''Adapted from Sam Lo's codebase, generates a lexicon for MFA'''
+    yivo_respelled_utterances = glob.glob(SEGMENTED_PATH + '/yivo_respelled/*/*.txt')
+    yivo_original_utterances = glob.glob(SEGMENTED_PATH + '/yivo_original/*/*.txt')
+    hasidified_utterances = glob.glob(SEGMENTED_PATH + '/hasidified/*/*.txt')
+    
+    unique_words_yivo_respelled = set()
+    unique_words_yivo_original = set()
+    unique_words_hasidified = set()
+    
+    for utterance_dir in [yivo_respelled_utterances, yivo_original_utterances, hasidified_utterances]:
+        for utterance in utterance_dir:
+            with open(utterance) as f:
+                text = f.read()
+                text = re.sub(r"[^ ־׳״אאַאָבבּבֿגדהווּײװױזחטייִײַכּכךלמםנןסעפּפֿפףצץקרששׂתּת']", r"", text)
+                for word in text.split():
+                    if utterance_dir == yivo_respelled_utterances:
+                        unique_words_yivo_respelled.add(word)
+                    elif utterance_dir == yivo_original_utterances:
+                        unique_words_yivo_original.add(word)
+                    else:
+                        unique_words_hasidified.add(word)
 
-    with open(f"lexicon.txt", "w") as f:
-        for i, word in enumerate(sorted(unique_words)):
+    with open(f"{PREFIX}/lexicon_yivo_respelled.txt", "w") as f:
+        for i, word in enumerate(sorted(unique_words_yivo_respelled)):
+            word_no_punct_shtumer_final = re.sub(r"[־׳״'א\-]", r"", word) # remove punct and shtumer alef from phonetic
+            word_no_punct_shtumer_final = re.sub(r"ך", r"כ", word_no_punct_shtumer_final) # remove final forms
+            word_no_punct_shtumer_final = re.sub(r"ם", r"מ", word_no_punct_shtumer_final)
+            word_no_punct_shtumer_final = re.sub(r"ן", r"נ", word_no_punct_shtumer_final)
+            word_no_punct_shtumer_final = re.sub(r"ף", r"פֿ", word_no_punct_shtumer_final)
+            word_no_punct_shtumer_final = re.sub(r"ץ", r"צ", word_no_punct_shtumer_final)
+            if word_no_punct_shtumer_final:
+                f.write(f"{word}\t{' '.join(word_no_punct_shtumer_final)}")
             if i != 0:
                 f.write("\n")
-            f.write(f"{word}\t{' '.join(word)}")
+                
+    with open(f"{PREFIX}/lexicon_yivo_original.txt", "w") as f:
+        for i, word in enumerate(sorted(unique_words_yivo_original)):
+            word_no_punct_final = re.sub(r"[־׳״'\-]", r"", word) # remove punct from phonetic
+            word_no_punct_final = re.sub(r"ך", r"כ", word_no_punct_final) # remove final forms
+            word_no_punct_final = re.sub(r"ם", r"מ", word_no_punct_final)
+            word_no_punct_final = re.sub(r"ן", r"נ", word_no_punct_final)
+            word_no_punct_final = re.sub(r"ף", r"פֿ", word_no_punct_final)
+            word_no_punct_final = re.sub(r"ץ", r"צ", word_no_punct_final)
+            if word_no_punct_final:
+                f.write(f"{word}\t{' '.join(word_no_punct_final)}")
+            if i != 0:
+                f.write("\n")
+                
+    with open(f"{PREFIX}/lexicon_hasidified.txt", "w") as f:
+        for i, word in enumerate(sorted(unique_words_hasidified)):
+            word_no_punct_final = re.sub(r"[־׳״'\-]", r"", word) # remove punct from phonetic
+            word_no_punct_final = re.sub(r"ך", r"כ", word_no_punct_final) # remove final forms except fey (b/c non-final fey is ambiguous)
+            word_no_punct_final = re.sub(r"ם", r"מ", word_no_punct_final)
+            word_no_punct_final = re.sub(r"ן", r"נ", word_no_punct_final)
+            word_no_punct_final = re.sub(r"ץ", r"צ", word_no_punct_final)
+            if word_no_punct_final:
+                f.write(f"{word}\t{' '.join(word_no_punct_final)}")
+            if i != 0:
+                f.write("\n")
 
 
 def segment(sources):
@@ -142,16 +186,18 @@ def segment(sources):
                 # output sync map to file
                 task.output_sync_map_file()
             speaker_code = speaker_codes[source['Narrator']]
-            done_dir = os.path.join(SEGMENTED_PATH, speaker_code)
-            orig_subdir = os.path.join(SEGMENTED_PATH, speaker_code, 'original') # non-respelled version
-            hasidified_subdir = os.path.join(SEGMENTED_PATH, speaker_code, 'hasidified') # hasidified version
-            os.makedirs(done_dir, exist_ok=True)
-            os.makedirs(orig_subdir, exist_ok=True)
+            audio_subdir = os.path.join(SEGMENTED_PATH, 'audio', speaker_code)
+            yivo_respelled_subdir = os.path.join(SEGMENTED_PATH, 'yivo_respelled', speaker_code)
+            yivo_orig_subdir = os.path.join(SEGMENTED_PATH, 'yivo_original', speaker_code)
+            hasidified_subdir = os.path.join(SEGMENTED_PATH, 'hasidified', speaker_code)
+            os.makedirs(audio_subdir, exist_ok=True)
+            os.makedirs(yivo_respelled_subdir, exist_ok=True)
+            os.makedirs(yivo_orig_subdir, exist_ok=True)
             os.makedirs(hasidified_subdir, exist_ok=True)
-            divide_mp3(waveform, task.sync_map_file_path_absolute, done_dir, respelled_text, orig_subdir, y_text, hasidified_subdir, hasidified_text)
+            divide_mp3(waveform, task.sync_map_file_path_absolute, audio_subdir, yivo_respelled_subdir, respelled_text, yivo_orig_subdir, y_text, hasidified_subdir, hasidified_text)
 
 
-def divide_mp3(mp3_input, json_path, output_dir, respelled_text, orig_subdir, orig_text, hasidified_subdir, hasidified_text):
+def divide_mp3(mp3_input, json_path, audio_subdir, yivo_respelled_subdir, respelled_text, yivo_orig_subdir, orig_text, hasidified_subdir, hasidified_text):
     # Utterance id keeps increasing throughout all the calls to this function
     global utterance_id
     with open(json_path) as js_f:
@@ -168,14 +214,16 @@ def divide_mp3(mp3_input, json_path, output_dir, respelled_text, orig_subdir, or
             end = ms(line['end'])
             text = line['lines']
             segment = mp3_input[start:end]
-            basename = os.path.join(output_dir, f'vz{utterance_id:04d}')
-            segment.export(basename + '.mp3')
-            with open(basename + '.txt', "w") as text_file:
+            audio_basename = os.path.join(audio_subdir, f'vz{utterance_id:04d}')
+            segment.export(audio_basename + '.mp3')
+            
+            yivo_respelled_basename = os.path.join(yivo_respelled_subdir, f'vz{utterance_id:04d}')
+            with open(yivo_respelled_basename + '.txt', "w") as text_file:
                 print(respelled_line, text[0], '\n\n\n\n\n')
                 text_file.write(respelled_line)
 
-            orig_basename = os.path.join(orig_subdir, f'vz{utterance_id:04d}')
-            with open(orig_basename + '.txt', "w") as text_file:
+            yivo_orig_basename = os.path.join(yivo_orig_subdir, f'vz{utterance_id:04d}')
+            with open(yivo_orig_basename + '.txt', "w") as text_file:
                 text_file.write(orig_line)
             hasidified_basename = os.path.join(hasidified_subdir, f'vz{utterance_id:04d}')
             with open(hasidified_basename + '.txt', "w") as text_file:
@@ -205,7 +253,7 @@ def download(sources):
 
 
 def purge_dataset():
-    mp3s = glob.glob(SEGMENTED_PATH + '/*/*.mp3')
+    mp3s = glob.glob(SEGMENTED_PATH + '/audio/*/*.mp3')
     count = 0
     for mp3 in mp3s:
         sox_proc = subprocess.Popen(
@@ -219,16 +267,20 @@ def purge_dataset():
 
         if length < 0.5:
             os.remove(mp3)
-            os.remove(mp3[:-3] + 'txt')
             count += 1
             print('removed ', mp3)
-    print(f'purged {count} utterances out of {len(mp3s)} :)')
-    print('You can now run')
-    print('mfa validate generated/segmented lexicon.txt')
-    print('mfa train generated/segmented lexicon.txt generated/textgrids')
+    print(f'purged {count} utterances out of {len(mp3s)} :)\n')
+    print('You can now run:')
+    print('    cd generated')
+    print('    mfa validate -a segmented/audio segmented/yivo_respelled lexicon_yivo_respelled.txt')
+    print('    mfa train -a segmented/audio segmented/yivo_respelled lexicon_yivo_respelled.txt textgrids/yivo_respelled')
+    print('Do the same to train the other two orthographies: yivo_original, hasidified')
 
 # fix punctuation spacing
 def clean_punc(text):
+    text = re.sub(r"[“„]", '"', text) # MFA interprets these quotation marks as word chars
+    text = re.sub(r"[―—–]+", "-", text) # replace dashes with hyphen
+    text = re.sub(r"׃", ":", text) # replace sof-pasuk character (a mistake!) with colon
     text = re.sub(r"\s+([,.:;!?])", r"\1 ", text)
     text = re.sub(r"\s+", r" ", text)
     text = re.sub(r"([.!?]+)", r"\1 \n ", text)
