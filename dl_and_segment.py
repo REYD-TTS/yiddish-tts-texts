@@ -175,7 +175,7 @@ def segment(sources):
                 text.write(rom_text)
 
 
-            config_string = u"task_language=deu|is_text_type=plain|os_task_file_format=json"
+            config_string = u"task_language=deu|is_text_type=plain|os_task_file_format=json|task_adjust_boundary_algorithm=percent|task_adjust_boundary_percent_value=50"
             task = Task(config_string=config_string)
             task.audio_file_path_absolute = cropped_audio
             task.text_file_path_absolute = romanized
@@ -271,10 +271,12 @@ def purge_dataset():
             print('removed ', mp3)
     print(f'purged {count} utterances out of {len(mp3s)} :)\n')
     print('You can now run:')
+    print('    bash prep_dataset.sh')
+    print('Then:')
     print('    cd generated')
-    print('    mfa validate -a segmented/audio segmented/yivo_respelled lexicon_yivo_respelled.txt')
-    print('    mfa train -a segmented/audio segmented/yivo_respelled lexicon_yivo_respelled.txt textgrids/yivo_respelled')
-    print('Do the same to train the other two orthographies: yivo_original, hasidified')
+    print('    mfa validate -a dataset/audio dataset/text/yivo_respelled dataset/lexicon/lexicon_yivo_respelled.txt')
+    print('    mfa train -a dataset/audio dataset/text/yivo_respelled dataset/lexicon/lexicon_yivo_respelled.txt textgrids/yivo_respelled')
+    print('Do the same to train the other two orthographies: yivo_original, hasidic (renamed from "hasidified")')
 
 # fix punctuation spacing
 def clean_punc(text):
@@ -283,7 +285,7 @@ def clean_punc(text):
     text = re.sub(r"׃", ":", text) # replace sof-pasuk character (a mistake!) with colon
     text = re.sub(r"\s+([,.:;!?])", r"\1 ", text)
     text = re.sub(r"\s+", r" ", text)
-    text = re.sub(r"([.!?]+)", r"\1 \n ", text)
+    text = re.sub(r"([.!?;]+)", r"\1\n ", text)
     return text.strip()
 
 if __name__ == '__main__':
