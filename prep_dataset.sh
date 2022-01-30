@@ -29,7 +29,7 @@ do
     cp "$file" "generated/dataset/text/yivo_original/$speaker/$(basename -s .txt "$file").lab"
   done
   
-  for file in generated/segmented/hasidified/$speaker/*.txt
+  for file in generated/segmented/hasidic/$speaker/*.txt
   do
     cp "$file" "generated/dataset/text/hasidic/$speaker/$(basename -s .txt "$file").lab"
   done
@@ -41,6 +41,6 @@ mkdir -p generated/dataset/lexicon
 
 cp generated/lexicon_yivo_respelled.txt generated/dataset/lexicon/lexicon_yivo_respelled.txt
 cp generated/lexicon_yivo_original.txt generated/dataset/lexicon/lexicon_yivo_original.txt
-cp generated/lexicon_hasidified.txt generated/dataset/lexicon/lexicon_hasidic.txt
+cp generated/lexicon_hasidic.txt generated/dataset/lexicon/lexicon_hasidic.txt
 
 echo Done!

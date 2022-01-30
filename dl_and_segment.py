@@ -27,7 +27,7 @@ AUDIO_PATH = pref('audio')
 SYNCMAPS_DIR = pref('syncmaps')
 ROM_PATH = pref('romanised')
 RESPELL_PATH = pref('respelled')
-HASID_PATH = pref('hasidified')
+HASID_PATH = pref('hasidic')
 SEGMENTED_PATH = pref('segmented')
 SR = 22050
 
@@ -73,13 +73,13 @@ def gen_lexicon():
     '''Adapted from Sam Lo's codebase, generates a lexicon for MFA'''
     yivo_respelled_utterances = glob.glob(SEGMENTED_PATH + '/yivo_respelled/*/*.txt')
     yivo_original_utterances = glob.glob(SEGMENTED_PATH + '/yivo_original/*/*.txt')
-    hasidified_utterances = glob.glob(SEGMENTED_PATH + '/hasidified/*/*.txt')
+    hasidic_utterances = glob.glob(SEGMENTED_PATH + '/hasidic/*/*.txt')
     
     unique_words_yivo_respelled = set()
     unique_words_yivo_original = set()
-    unique_words_hasidified = set()
+    unique_words_hasidic = set()
     
-    for utterance_dir in [yivo_respelled_utterances, yivo_original_utterances, hasidified_utterances]:
+    for utterance_dir in [yivo_respelled_utterances, yivo_original_utterances, hasidic_utterances]:
         for utterance in utterance_dir:
             with open(utterance) as f:
                 text = f.read()
@@ -90,7 +90,7 @@ def gen_lexicon():
                     elif utterance_dir == yivo_original_utterances:
                         unique_words_yivo_original.add(word)
                     else:
-                        unique_words_hasidified.add(word)
+                        unique_words_hasidic.add(word)
 
     with open(f"{PREFIX}/lexicon_yivo_respelled.txt", "w") as f:
         for i, word in enumerate(sorted(unique_words_yivo_respelled)):
@@ -118,8 +118,8 @@ def gen_lexicon():
             if i != 0:
                 f.write("\n")
                 
-    with open(f"{PREFIX}/lexicon_hasidified.txt", "w") as f:
-        for i, word in enumerate(sorted(unique_words_hasidified)):
+    with open(f"{PREFIX}/lexicon_hasidic.txt", "w") as f:
+        for i, word in enumerate(sorted(unique_words_hasidic)):
             word_no_punct_final = re.sub(r"[־׳״'\-]", r"", word) # remove punct from phonetic
             word_no_punct_final = re.sub(r"ך", r"כ", word_no_punct_final) # remove final forms except fey (b/c non-final fey is ambiguous)
             word_no_punct_final = re.sub(r"ם", r"מ", word_no_punct_final)
@@ -158,19 +158,19 @@ def segment(sources):
 
             orig_text = os.path.join(source['Filepath'])
             respelled = os.path.join(RESPELL_PATH, source['Filename'])
-            hasidified = os.path.join(HASID_PATH, source['Filename'])
+            hasidic = os.path.join(HASID_PATH, source['Filename'])
             romanized = os.path.join(ROM_PATH, source['Filename'])
             with open(orig_text) as y_text:
                 y_text = y_text.read()
                 y_text = clean_punc(y_text)
                 respelled_text = yiddish_text_tools.respell_loshn_koydesh(y_text)
-                hasidified_text = yiddish_text_tools.hasidify(y_text)
+                hasidic_text = yiddish_text_tools.hasidify(y_text)
                 rom_text = yiddish_text_tools.romanise_german(respelled_text)
 
             with open(respelled, 'w') as text:
                 text.write(respelled_text)
-            with open(hasidified, 'w') as text:
-                text.write(hasidified_text)
+            with open(hasidic, 'w') as text:
+                text.write(hasidic_text)
             with open(romanized, 'w') as text:
                 text.write(rom_text)
 
@@ -189,15 +189,15 @@ def segment(sources):
             audio_subdir = os.path.join(SEGMENTED_PATH, 'audio', speaker_code)
             yivo_respelled_subdir = os.path.join(SEGMENTED_PATH, 'yivo_respelled', speaker_code)
             yivo_orig_subdir = os.path.join(SEGMENTED_PATH, 'yivo_original', speaker_code)
-            hasidified_subdir = os.path.join(SEGMENTED_PATH, 'hasidified', speaker_code)
+            hasidic_subdir = os.path.join(SEGMENTED_PATH, 'hasidic', speaker_code)
             os.makedirs(audio_subdir, exist_ok=True)
             os.makedirs(yivo_respelled_subdir, exist_ok=True)
             os.makedirs(yivo_orig_subdir, exist_ok=True)
-            os.makedirs(hasidified_subdir, exist_ok=True)
-            divide_mp3(waveform, task.sync_map_file_path_absolute, audio_subdir, yivo_respelled_subdir, respelled_text, yivo_orig_subdir, y_text, hasidified_subdir, hasidified_text)
+            os.makedirs(hasidic_subdir, exist_ok=True)
+            divide_mp3(waveform, task.sync_map_file_path_absolute, audio_subdir, yivo_respelled_subdir, respelled_text, yivo_orig_subdir, y_text, hasidic_subdir, hasidic_text)
 
 
-def divide_mp3(mp3_input, json_path, audio_subdir, yivo_respelled_subdir, respelled_text, yivo_orig_subdir, orig_text, hasidified_subdir, hasidified_text):
+def divide_mp3(mp3_input, json_path, audio_subdir, yivo_respelled_subdir, respelled_text, yivo_orig_subdir, orig_text, hasidic_subdir, hasidic_text):
     # Utterance id keeps increasing throughout all the calls to this function
     global utterance_id
     with open(json_path) as js_f:
@@ -206,9 +206,9 @@ def divide_mp3(mp3_input, json_path, audio_subdir, yivo_respelled_subdir, respel
                 aeneas_segment["fragments"],
                 respelled_text.splitlines(),
                 orig_text.splitlines(),
-                hasidified_text.splitlines())
+                hasidic_text.splitlines())
 
-        for (line, respelled_line, orig_line, hasidified_line) in texts:
+        for (line, respelled_line, orig_line, hasidic_line) in texts:
             ms = lambda x: int(1000*float(x))
             start = ms(line['begin'])
             end = ms(line['end'])
@@ -225,9 +225,9 @@ def divide_mp3(mp3_input, json_path, audio_subdir, yivo_respelled_subdir, respel
             yivo_orig_basename = os.path.join(yivo_orig_subdir, f'vz{utterance_id:04d}')
             with open(yivo_orig_basename + '.txt', "w") as text_file:
                 text_file.write(orig_line)
-            hasidified_basename = os.path.join(hasidified_subdir, f'vz{utterance_id:04d}')
-            with open(hasidified_basename + '.txt', "w") as text_file:
-                text_file.write(hasidified_line)
+            hasidic_basename = os.path.join(hasidic_subdir, f'vz{utterance_id:04d}')
+            with open(hasidic_basename + '.txt', "w") as text_file:
+                text_file.write(hasidic_line)
             utterance_id += 1
 
 def download(sources):
@@ -275,8 +275,8 @@ def purge_dataset():
     print('Then:')
     print('    cd generated')
     print('    mfa validate -a dataset/audio dataset/text/yivo_respelled dataset/lexicon/lexicon_yivo_respelled.txt')
-    print('    mfa train -a dataset/audio dataset/text/yivo_respelled dataset/lexicon/lexicon_yivo_respelled.txt textgrids/yivo_respelled')
-    print('Do the same to train the other two orthographies: yivo_original, hasidic (renamed from "hasidified")')
+    print('    mfa train -a dataset/audio dataset/text/yivo_respelled dataset/lexicon/lexicon_yivo_respelled.txt textgrids/yivo_respelled/TextGrid')
+    print('Do the same to train the other two orthographies: yivo_original, hasidic')
 
 # fix punctuation spacing
 def clean_punc(text):
