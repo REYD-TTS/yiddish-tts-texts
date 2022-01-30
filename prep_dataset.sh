@@ -43,4 +43,8 @@ cp generated/lexicon_yivo_respelled.txt generated/dataset/lexicon/lexicon_yivo_r
 cp generated/lexicon_yivo_original.txt generated/dataset/lexicon/lexicon_yivo_original.txt
 cp generated/lexicon_hasidic.txt generated/dataset/lexicon/lexicon_hasidic.txt
 
+echo Zipping dataset
+
+zip -qq -r generated/dataset.zip generated/dataset -x ".*" -x "__MACOSX"
+
 echo Done!
