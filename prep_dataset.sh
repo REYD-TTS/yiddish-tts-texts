@@ -35,16 +35,10 @@ do
   done
 done
 
-echo Copying lexicon files for MFA
-
-mkdir -p generated/dataset/lexicon
-
-cp generated/lexicon_yivo_respelled.txt generated/dataset/lexicon/lexicon_yivo_respelled.txt
-cp generated/lexicon_yivo_original.txt generated/dataset/lexicon/lexicon_yivo_original.txt
-cp generated/lexicon_hasidic.txt generated/dataset/lexicon/lexicon_hasidic.txt
-
 echo Zipping dataset
 
-zip -qq -r generated/dataset.zip generated/dataset -x ".*" -x "__MACOSX"
+cd generated
+zip -qq -r dataset.zip dataset -x ".*" -x "__MACOSX"
+cd ..
 
 echo Done!
