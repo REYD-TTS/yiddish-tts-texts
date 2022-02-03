@@ -15,8 +15,7 @@ import math
 import json
 import glob
 import subprocess
-
-from yiddish_text_tools import yiddish_text_tools
+import yiddish
 
 
 CATALOGUE_PATH = 'catalog.csv'
@@ -163,9 +162,9 @@ def segment(sources):
             with open(orig_text) as y_text:
                 y_text = y_text.read()
                 y_text = clean_punc(y_text)
-                respelled_text = yiddish_text_tools.respell_loshn_koydesh(y_text)
-                hasidic_text = yiddish_text_tools.hasidify(y_text)
-                rom_text = yiddish_text_tools.romanise_german(respelled_text)
+                respelled_text = yiddish.respell_loshn_koydesh(y_text)
+                hasidic_text = yiddish.hasidify(y_text)
+                rom_text = yiddish.romanise_german(respelled_text)
 
             with open(respelled, 'w') as text:
                 text.write(respelled_text)
