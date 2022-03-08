@@ -1,4 +1,4 @@
-#!/bin/bashs
+#!/bin/bash
 # This script will generate a publishable TTS dataset of .wav and .lab files
 
 for speaker in lit1 lit2 pol1
@@ -34,6 +34,9 @@ do
     cp "$file" "generated/dataset/text/hasidic/$speaker/$(basename -s .txt "$file").lab"
   done
 done
+
+echo Copying readme
+cp DATASET_README.md generated/dataset/README.md
 
 echo Zipping dataset
 

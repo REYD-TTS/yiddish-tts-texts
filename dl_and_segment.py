@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 import os
 import re
+import numpy as np
 import zipfile
 import aeneas
 from urllib import parse
@@ -254,6 +255,7 @@ def download(sources):
 def purge_dataset():
     mp3s = glob.glob(SEGMENTED_PATH + '/audio/*/*.mp3')
     count = 0
+    lengths = []
     for mp3 in mp3s:
         sox_proc = subprocess.Popen(
                 ["soxi", "-D", mp3], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True
@@ -264,11 +266,17 @@ def purge_dataset():
         else:
             length = float(stdout.strip())
 
-        if length < 0.5:
+        if length < 1.:
             os.remove(mp3)
             count += 1
             print('removed ', mp3)
+        else:
+            lengths.append(length)
     print(f'purged {count} utterances out of {len(mp3s)} :)\n')
+    print(f'Dataset contains {len(lengths)} utterances\n')
+    print(f'Shortest: {min(lengths)}\n')
+    print(f'Longest: {max(lengths)}\n')
+    print(f'Mean: {np.mean(lengths)}\n')
     print('You can now run:')
     print('    bash prep_dataset.sh')
     print('Then:')
