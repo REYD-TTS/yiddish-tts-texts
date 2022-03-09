@@ -281,8 +281,8 @@ def purge_dataset():
     print('    bash prep_dataset.sh')
     print('Then:')
     print('    cd generated')
-    print('    mfa validate -a dataset/audio dataset/text/yivo_respelled dataset/lexicon/lexicon_yivo_respelled.txt')
-    print('    mfa train -a dataset/audio dataset/text/yivo_respelled dataset/lexicon/lexicon_yivo_respelled.txt textgrids/yivo_respelled/TextGrid')
+    print('    mfa validate -a dataset/audio dataset/text/yivo_respelled lexicon_yivo_respelled.txt')
+    print('    mfa train -a dataset/audio dataset/text/yivo_respelled lexicon_yivo_respelled.txt textgrids/yivo_respelled/TextGrid')
     print('Do the same to train the other two orthographies: yivo_original, hasidic')
 
 # fix punctuation spacing
