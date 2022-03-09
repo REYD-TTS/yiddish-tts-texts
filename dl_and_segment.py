@@ -268,11 +268,14 @@ def purge_dataset():
 
         if length < 1.:
             os.remove(mp3)
+            for orthography in ['yivo_respelled', 'yivo_original', 'hasidic']:
+                txt = mp3.replace('audio', orthography).replace('.mp3', '.txt')
+                os.remove(txt)
             count += 1
             print('removed ', mp3)
         else:
             lengths.append(length)
-    print(f'purged {count} utterances out of {len(mp3s)} :)\n')
+    print(f'purged {count} utterances out of {len(mp3s)}\n')
     print(f'Dataset contains {len(lengths)} utterances\n')
     print(f'Shortest: {min(lengths)}\n')
     print(f'Longest: {max(lengths)}\n')
