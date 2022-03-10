@@ -16,7 +16,7 @@ Each audio clip has 3 corresponding transcriptions:
 Each speaker is identified by a speaker ID. These are lit1, lit2 and pol1. The first three letters of the ID represent the dialect of the speaker.
 
 The directory structure is as follows:
-
+```
 dataset
 ├── README.md
 ├── audio
@@ -36,7 +36,7 @@ dataset
         ├── lit1
         ├── lit2
         └── pol1
-
+```
 where each text subsubdirectory contains .lab files containing UTF-8 encoded text. Audio subdirectories contain 16 bit PCM encoded .wav files at 44,100Hz.
 
 ## Creation
